@@ -65,6 +65,28 @@ AC_ARG_WITH([host-scanner],
               [],
               [with_host_scanner=no])
 
+# libevent2
+AC_CHECK_LIB([libevent], [dlsym], [DL_LIBS=-levent])
+
+# Credential support on FreeBSD and DragonFly.
+AC_CHECK_HEADERS([sys/ucred.h])
+
+# dlopen()
+AC_CHECK_LIB([dl], [dlsym], [DL_LIBS=-ldl])
+AC_SUBST([DL_LIBS])
+
+# Defines __FreeBSD__ if we're on FreeBSD, __DragonFly__ if we're on DragonFly.
+AC_CHECK_HEADERS([sys/param.h])
+
+# waitid() and signal.h are needed for the test suite.
+AC_CHECK_FUNCS([waitid])
+AC_CHECK_HEADERS([signal.h])
+
+AC_CHECK_DECL(CLOCK_MONOTONIC,[],
+	      [AC_MSG_ERROR("CLOCK_MONOTONIC is needed to compile wayland")],
+	      [[#include <time.h>]])
+AC_CHECK_HEADERS([execinfo.h])
+
 AC_ARG_ENABLE([documentation],
 	      [AC_HELP_STRING([--disable-documentation],
 		              [Disable building the documentation])],
