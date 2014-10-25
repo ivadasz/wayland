@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
@@ -251,7 +252,11 @@ int main(int argc, char *argv[])
 	const struct test *t;
 	pid_t pid;
 	int total, pass;
+#ifdef __DragonFly__
+	int status;
+#else
 	siginfo_t info;
+#endif
 
 	/* Load system malloc, free, and realloc */
 	sys_calloc = dlsym(RTLD_NEXT, "calloc");
@@ -295,6 +300,12 @@ int main(int argc, char *argv[])
 		if (pid == 0)
 			run_test(t); /* never returns */
 
+#ifdef __DragonFly__
+		if (wait(&status)) {
+			fprintf(stderr, "waitid failed: %m\n");
+			abort();
+		}
+#else
 		if (waitid(P_ALL, 0, &info, WEXITED)) {
 			stderr_set_color(RED);
 			fprintf(stderr, "waitid failed: %m\n");
@@ -302,7 +313,20 @@ int main(int argc, char *argv[])
 
 			abort();
 		}
+#endif
 
+		fprintf(stderr, "test \"%s\":\t", t->name);
+#ifdef __DragonFly__
+		if (WIFEXITED(status)) {
+			fprintf(stderr, "exit status %d", WEXITSTATUS(status));
+			if (WEXITSTATUS(status) == EXIT_SUCCESS)
+				success = 1;
+			break;
+		} else if (WIFSIGNALED(status) || WCOREDUMP(status)) {
+			fprintf(stderr, "signal %d", WTERMSIG(status));
+			break;
+		}
+#else
 		switch (info.si_code) {
 		case CLD_EXITED:
 			if (info.si_status == EXIT_SUCCESS)
@@ -326,6 +350,7 @@ int main(int argc, char *argv[])
 
 			break;
 		}
+#endif
 
 		if (success) {
 			pass++;

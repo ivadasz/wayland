@@ -38,7 +38,7 @@ libwayland_util_la_SOURCES =			\
 	src/wayland-private.h
 
 libwayland_server_la_CFLAGS = $(FFI_CFLAGS) $(GCC_CFLAGS) -pthread
-libwayland_server_la_LIBADD = $(FFI_LIBS) libwayland-util.la -lrt -lm
+libwayland_server_la_LIBADD = $(EVENT_LIBS) $(FFI_LIBS) libwayland-util.la -lrt -lm
 libwayland_server_la_LDFLAGS = -version-info 1:0:1
 libwayland_server_la_SOURCES =			\
 	src/wayland-server.c			\
@@ -50,7 +50,7 @@ nodist_libwayland_server_la_SOURCES =		\
 	protocol/wayland-protocol.c
 
 libwayland_client_la_CFLAGS = $(FFI_CFLAGS) $(GCC_CFLAGS) -pthread
-libwayland_client_la_LIBADD = $(FFI_LIBS) libwayland-util.la -lrt -lm
+libwayland_client_la_LIBADD = $(EVENT_LIBS) $(FFI_LIBS) libwayland-util.la -lrt -lm
 libwayland_client_la_LDFLAGS = -version-info 3:0:3
 libwayland_client_la_SOURCES =			\
 	src/wayland-client.c
@@ -182,7 +182,7 @@ message_test_SOURCES = tests/message-test.c
 message_test_LDADD = libtest-runner.la
 
 fixed_benchmark_SOURCES = tests/fixed-benchmark.c
-fixed_benchmark_LDADD = libtest-runner.la
+fixed_benchmark_LDADD = libtest-runner.la $(EVENT_LIBS)
 
 os_wrappers_test_SOURCES = tests/os-wrappers-test.c
 os_wrappers_test_LDADD = libtest-runner.la
