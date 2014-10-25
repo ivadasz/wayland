@@ -42,7 +42,13 @@ AC_SUBST(GCC_CFLAGS)
 AC_CHECK_FUNCS([accept4 mkostemp posix_fallocate])
 
 # libevent2
-AC_CHECK_LIB([libevent], [dlsym], [DL_LIBS=-levent])
+EVENT_LIB=""
+AC_ARG_WITH(libevent, [  --with-libevent=<dir>      Use libevent from here],
+		   [ libevent=$withval
+		     CPPFLAGS="$CPPFLAGS -I$withval/include"
+		     LDFLAGS="$LDFLAGS -L$withval/lib" ] )
+AC_CHECK_LIB([event], [event_new], [EVENT_LIBS=-levent])
+AC_SUBST([EVENT_LIBS])
 
 # Credential support on FreeBSD and DragonFly.
 AC_CHECK_HEADERS([sys/ucred.h])
