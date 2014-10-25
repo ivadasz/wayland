@@ -203,7 +203,11 @@ shm_pool_resize(struct wl_client *client, struct wl_resource *resource,
 		return;
 	}
 
+#if defined(__DragonFly__)
+	data = MAP_FAILED;
+#else
 	data = mremap(pool->data, pool->size, size, MREMAP_MAYMOVE);
+#endif
 	if (data == MAP_FAILED) {
 		wl_resource_post_error(resource,
 				       WL_SHM_ERROR_INVALID_FD,
@@ -446,6 +450,15 @@ sigbus_handler(int signum, siginfo_t *info, void *context)
 	sigbus_data->fallback_mapping_used = 1;
 
 	/* This should replace the previous mapping */
+#if defined(__DragonFly__)
+	if (mmap(pool->data, pool->size,
+		 PROT_READ | PROT_WRITE,
+		 MAP_PRIVATE | MAP_FIXED | MAP_ANON,
+		 0, 0) == (void *) -1) {
+		reraise_sigbus();
+		return;
+	}
+#else
 	if (mmap(pool->data, pool->size,
 		 PROT_READ | PROT_WRITE,
 		 MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS,
@@ -453,6 +466,7 @@ sigbus_handler(int signum, siginfo_t *info, void *context)
 		reraise_sigbus();
 		return;
 	}
+#endif
 }
 
 static void
