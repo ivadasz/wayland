@@ -41,12 +41,23 @@ AC_SUBST(GCC_CFLAGS)
 
 AC_CHECK_FUNCS([accept4 mkostemp posix_fallocate])
 
-AC_CHECK_DECL(SFD_CLOEXEC,[],
-	      [AC_MSG_ERROR("SFD_CLOEXEC is needed to compile wayland")],
-	      [[#include <sys/signalfd.h>]])
-AC_CHECK_DECL(TFD_CLOEXEC,[],
-	      [AC_MSG_ERROR("TFD_CLOEXEC is needed to compile wayland")],
-	      [[#include <sys/timerfd.h>]])
+# libevent2
+AC_CHECK_LIB([libevent], [dlsym], [DL_LIBS=-levent])
+
+# Credential support on FreeBSD and DragonFly.
+AC_CHECK_HEADERS([sys/ucred.h])
+
+# dlopen()
+AC_CHECK_LIB([dl], [dlsym], [DL_LIBS=-ldl])
+AC_SUBST([DL_LIBS])
+
+# Defines __FreeBSD__ if we're on FreeBSD, __DragonFly__ if we're on DragonFly.
+AC_CHECK_HEADERS([sys/param.h])
+
+# waitid() and signal.h are needed for the test suite.
+AC_CHECK_FUNCS([waitid])
+AC_CHECK_HEADERS([signal.h])
+
 AC_CHECK_DECL(CLOCK_MONOTONIC,[],
 	      [AC_MSG_ERROR("CLOCK_MONOTONIC is needed to compile wayland")],
 	      [[#include <time.h>]])
