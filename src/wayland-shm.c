@@ -137,6 +137,7 @@ shm_pool_create_buffer(struct wl_client *client, struct wl_resource *resource,
 		return;
 	}
 
+	fprintf(stderr, "%s: offset=%d, width=%d, height=%d, stride=%d, pool->size=%d\n", __func__, offset, width, height, stride, pool->size);
 	if (offset < 0 || width <= 0 || height <= 0 || stride < width ||
 	    INT32_MAX / stride <= height ||
 	    offset > pool->size - stride * height) {
@@ -202,8 +203,12 @@ shm_pool_resize(struct wl_client *client, struct wl_resource *resource,
 				       "shrinking pool invalid");
 		return;
 	}
+	if (size == pool->size)
+		return;
 
 #if defined(__DragonFly__)
+	fprintf(stderr, "%s: mremap from %d to %d attempted\n", __func__,
+	    pool->size, size);
 	data = MAP_FAILED;
 #else
 	data = mremap(pool->data, pool->size, size, MREMAP_MAYMOVE);
@@ -243,6 +248,9 @@ shm_create_pool(struct wl_client *client, struct wl_resource *resource,
 				       "invalid size (%d)", size);
 		goto err_free;
 	}
+
+	if (size < 0x8000)
+		size = 0x8000;
 
 	pool->refcount = 1;
 	pool->size = size;
