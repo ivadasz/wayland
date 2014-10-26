@@ -195,6 +195,7 @@ wl_event_loop_add_fd(struct wl_event_loop *loop,
 	add_source(loop, &source->base, data);
 	source->base.interface = &fd_source_interface;
 	source->base.fd = fcntl(fd, F_DUPFD_CLOEXEC, 0);
+	fcntl(source->base.fd, O_NONBLOCK);
 	source->func = func;
 	source->fd = fd;
 	source->base.ev = event_new(loop->evbase, source->base.fd, what,
