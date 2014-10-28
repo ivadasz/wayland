@@ -1405,6 +1405,7 @@ wl_display_dispatch_queue(struct wl_display *display,
 	pthread_mutex_lock(&display->mutex);
 
 	ret = dispatch_queue(display, queue);
+//	fprintf(stderr, "dispatch_queue returns %d\n", ret);
 	if (ret == -1)
 		goto err_unlock;
 	if (ret > 0) {
@@ -1417,6 +1418,7 @@ wl_display_dispatch_queue(struct wl_display *display,
 	 * will close the socket, and if we bail out here we don't get
 	 * a chance to process the error. */
 	ret = wl_connection_flush(display->connection);
+//	fprintf(stderr, "%s: wl_connection_flush returns %d\n", __func__, ret);
 	if (ret < 0 && errno != EAGAIN && errno != EPIPE) {
 		display_fatal_error(display, errno);
 		goto err_unlock;
@@ -1431,6 +1433,7 @@ wl_display_dispatch_queue(struct wl_display *display,
 	do {
 		ret = poll(pfd, 1, -1);
 	} while (ret == -1 && errno == EINTR);
+//	fprintf(stderr, "poll returns %d\n", ret);
 
 	if (ret == -1) {
 		wl_display_cancel_read(display);
@@ -1443,6 +1446,7 @@ wl_display_dispatch_queue(struct wl_display *display,
 		goto err_unlock;
 
 	ret = dispatch_queue(display, queue);
+//	fprintf(stderr, "dispatch_queue returns %d\n", ret);
 	if (ret == -1)
 		goto err_unlock;
 

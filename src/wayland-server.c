@@ -258,7 +258,9 @@ wl_client_connection_data(int fd, uint32_t mask, void *data)
 	}
 
 	if (mask & WL_EVENT_WRITABLE) {
+//		wl_log("%s: WL_EVENT_WRITABLE\n", __func__);
 		len = wl_connection_flush(connection);
+//		wl_log("%s: len=%d\n", __func__, len);
 		if (len < 0 && errno != EAGAIN) {
 			wl_client_destroy(client);
 			return 1;
@@ -270,8 +272,10 @@ wl_client_connection_data(int fd, uint32_t mask, void *data)
 
 	len = 0;
 	if (mask & WL_EVENT_READABLE) {
+//		wl_log("%s: WL_EVENT_READABLE\n", __func__);
 		len = wl_connection_read(connection);
-		if (len <= 0 && errno != EAGAIN) {
+//		wl_log("%s: len=%d\n", __func__, len);
+		if (len < 0 && errno != EAGAIN) {
 			wl_client_destroy(client);
 			return 1;
 		}
@@ -355,8 +359,12 @@ wl_client_connection_data(int fd, uint32_t mask, void *data)
 			break;
 	}
 
-	if (client->error)
+	if (client->error) {
+		fprintf(stderr, "%s: calling wl_client_destroy\n", __func__);
 		wl_client_destroy(client);
+	}
+
+//	fprintf(stderr, "%s: returning 1\n", __func__);
 
 	return 1;
 }
@@ -689,6 +697,8 @@ WL_EXPORT void
 wl_client_destroy(struct wl_client *client)
 {
 	uint32_t serial = 0;
+
+	wl_log("%s called\n", __func__);
 
 	wl_signal_emit(&client->destroy_signal, client);
 
@@ -1047,6 +1057,8 @@ socket_data(int fd, uint32_t mask, void *data)
 	else
 		if (!wl_client_create(display, client_fd))
 			close(client_fd);
+
+	wl_log("%s: accepted connection\n", __func__);
 
 	return 1;
 }

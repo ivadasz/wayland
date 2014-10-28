@@ -112,7 +112,7 @@ wl_event_source_fd_dispatch(evutil_socket_t fd, short what, void *arg)
 		mask |= WL_EVENT_READABLE;
 	if (what & EV_WRITE)
 		mask |= WL_EVENT_WRITABLE;
-	wl_log("%s: what=%d, mask=%u\n", __func__, what, mask);
+//	wl_log("%s: what=%d, mask=%u\n", __func__, what, mask);
 #if 0
 	if (what & EPOLLHUP)
 		mask |= WL_EVENT_HANGUP;
@@ -184,7 +184,7 @@ wl_event_loop_add_fd(struct wl_event_loop *loop,
 	if (source == NULL)
 		return NULL;
 
-	wl_log("%s called\n", __func__);
+//	wl_log("%s called\n", __func__);
 
 	what = EV_PERSIST;
 	if (mask & WL_EVENT_READABLE)
@@ -229,7 +229,7 @@ wl_event_source_fd_update(struct wl_event_source *source, uint32_t mask)
 	struct wl_event_loop *loop = source->loop;
 	short what;
 
-	wl_log("%s called\n", __func__);
+//	wl_log("%s called\n", __func__);
 
 	what = EV_PERSIST;
 	if (mask & WL_EVENT_READABLE)
@@ -276,7 +276,7 @@ wl_event_source_timer_dispatch(evutil_socket_t fd, short what, void *arg)
 	struct wl_event_source_timer *timer_source =
 		(struct wl_event_source_timer *) source;
 
-	wl_log("timer_dispatch\n");
+//	wl_log("timer_dispatch\n");
 
 	return timer_source->func(timer_source->base.data);
 }
@@ -296,7 +296,7 @@ wl_event_loop_add_timer(struct wl_event_loop *loop,
 	if (source == NULL)
 		return NULL;
 
-	wl_log("%s called\n", __func__);
+//	wl_log("%s called\n", __func__);
 
 	add_source(loop, &source->base, data);
 	source->base.interface = &timer_source_interface;
@@ -312,6 +312,8 @@ WL_EXPORT int
 wl_event_source_timer_update(struct wl_event_source *source, int ms_delay)
 {
 	struct timeval tv;
+
+//	wl_log("updating timer to ms_delay=%d\n", ms_delay);
 
 	tv.tv_sec = ms_delay / 1000;
 	tv.tv_usec = (ms_delay % 1000) * 1000;
@@ -353,7 +355,7 @@ wl_event_source_signal_dispatch(evutil_socket_t fd, short what, void *arg)
 	struct wl_event_source_signal *signal_source =
 		(struct wl_event_source_signal *) source;
 
-	wl_log("signal_dispatch\n");
+//	wl_log("signal_dispatch\n");
 
 	return signal_source->func(signal_source->signal_number,
 				   signal_source->base.data);
@@ -375,7 +377,7 @@ wl_event_loop_add_signal(struct wl_event_loop *loop,
 	if (source == NULL)
 		return NULL;
 
-	wl_log("%s called\n", __func__);
+//	wl_log("%s called\n", __func__);
 
 	add_source(loop, &source->base, data);
 	source->base.interface = &signal_source_interface;
@@ -413,6 +415,7 @@ wl_event_loop_add_idle(struct wl_event_loop *loop,
 	source->base.interface = &idle_source_interface;
 	source->base.loop = loop;
 	source->base.fd = -1;
+	source->base.ev = NULL;
 
 	source->func = func;
 	source->base.data = data;
@@ -433,7 +436,11 @@ wl_event_source_remove(struct wl_event_source *source)
 {
 	struct wl_event_loop *loop = source->loop;
 
-	wl_log("%s called\n", __func__);
+//	wl_log("%s called\n", __func__);
+	if (source->ev != NULL) {
+	event_free(source->ev);
+	source->ev = NULL;
+	}
 
 	wl_list_remove(&source->link);
 	wl_list_insert(&loop->destroy_list, &source->link);
@@ -447,18 +454,25 @@ wl_event_loop_process_destroy_list(struct wl_event_loop *loop)
 	struct wl_event_source *source, *next;
 
 	wl_list_for_each_safe(source, next, &loop->destroy_list, link){
-		event_free(source->ev);
+//		fprintf(stderr, "%s: processing entry\n", __func__);
+		if (source->ev != NULL) {
+			event_free(source->ev);
+			source->ev = NULL;
+		}
+//		fprintf(stderr, "%s: freed event\n", __func__);
 
 		/* We need to explicitly remove the fd, since closing the fd
 		 * isn't enough in case we've dup'ed the fd. */
 		if (source->fd >= 0) {
+//			fprintf(stderr, "%s: closing fd\n", __func__);
 			close(source->fd);
 			source->fd = -1;
 		}
+//		fprintf(stderr, "%s: freeing\n", __func__);
 		free(source);
 	}
 
-
+//	fprintf(stderr, "%s: wl_list_init\n", __func__);
 	wl_list_init(&loop->destroy_list);
 }
 
@@ -521,12 +535,15 @@ wl_event_loop_dispatch_idle(struct wl_event_loop *loop)
 {
 	struct wl_event_source_idle *source;
 
+//	fprintf(stderr, "%s: running\n", __func__);
+
 	while (!wl_list_empty(&loop->idle_list)) {
 		source = container_of(loop->idle_list.next,
 				      struct wl_event_source_idle, base.link);
 		source->func(source->base.data);
 		wl_event_source_remove(&source->base);
 	}
+//	fprintf(stderr, "%s: finished\n", __func__);
 }
 
 WL_EXPORT int
@@ -534,19 +551,29 @@ wl_event_loop_dispatch(struct wl_event_loop *loop, int timeout)
 {
 	int val, n;
 
+//	fprintf(stderr, "%s: called\n", __func__);
+
 	wl_event_loop_dispatch_idle(loop);
 
-//	wl_log("%s called\n", __func__);
+//	wl_log("%s: called\n", __func__);
+//	fprintf(stderr, "%s: calling event_base_loop\n", __func__);
 
 	val = event_base_loop(loop->evbase, EVLOOP_ONCE);
-	if (val < 0)
+	if (val < 0) {
+		fprintf(stderr, "%s: event_base_loop returned %d\n", __func__, val);
 		return -1;
+	}
 
+//	fprintf(stderr, "%s: calling wl_event_loop_process_destroy_list\n", __func__);
 	wl_event_loop_process_destroy_list(loop);
+//	fprintf(stderr, "%s: calling post_dispatch_check\n", __func__);
 
 	do {
 		n = post_dispatch_check(loop);
+//		fprintf(stderr, "%s: post_dispatch_check returned %d\n", __func__, n);
 	} while (n > 0);
+
+//	fprintf(stderr, "%s: finished\n", __func__);
 		
 	return 0;
 }
