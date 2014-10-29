@@ -66,6 +66,7 @@ int wl_event_source_timer_update(struct wl_event_source *source,
 				 int ms_delay);
 int wl_event_source_remove(struct wl_event_source *source);
 void wl_event_source_check(struct wl_event_source *source);
+void wl_event_source_activate(struct wl_event_source *source);
 
 
 int wl_event_loop_dispatch(struct wl_event_loop *loop, int timeout);
