@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <event2/event.h>
+#include <event2/thread.h>
 #include "wayland-private.h"
 #include "wayland-server.h"
 #include "wayland-os.h"
@@ -434,6 +435,17 @@ wl_event_source_check(struct wl_event_source *source)
 	wl_list_insert(source->loop->check_list.prev, &source->link);
 }
 
+WL_EXPORT void
+wl_event_source_activate(struct wl_event_source *source)
+{
+	if (source->ev != NULL) {
+		if (!event_pending(source->ev, EV_TIMEOUT|EV_READ|EV_WRITE|EV_SIGNAL, NULL)) {
+			event_add(source->ev, NULL);
+		}
+		event_active(source->ev, EV_TIMEOUT, 0);
+	}
+}
+
 WL_EXPORT int
 wl_event_source_remove(struct wl_event_source *source)
 {
@@ -488,6 +500,7 @@ wl_event_loop_create(void)
 	if (loop == NULL)
 		return NULL;
 
+	evthread_use_pthreads();
 	loop->evbase = event_base_new();
 	if (loop->evbase == NULL) {
 		free(loop);
