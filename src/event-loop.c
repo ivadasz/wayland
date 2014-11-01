@@ -321,7 +321,10 @@ wl_event_source_timer_update(struct wl_event_source *source, int ms_delay)
 
 	tv.tv_sec = ms_delay / 1000;
 	tv.tv_usec = (ms_delay % 1000) * 1000;
-	event_add(source->ev, &tv);
+	if (ms_delay == 0)
+		event_del(source->ev);
+	else
+		event_add(source->ev, &tv);
 
 	return 0;
 }
