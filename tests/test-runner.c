@@ -38,7 +38,9 @@
 #include <errno.h>
 #include <limits.h>
 #include <sys/ptrace.h>
+#ifndef __DragonFly__
 #include <sys/prctl.h>
+#endif
 #ifndef PR_SET_PTRACER
 # define PR_SET_PTRACER 0x59616d61
 #endif
@@ -308,17 +310,22 @@ is_debugger_attached(void)
 		close(pipefd[0]);
 		if (buf == '-')
 			_exit(1);
+#ifndef __DragonFly__
 		if (ptrace(PTRACE_ATTACH, ppid, NULL, NULL) != 0)
 			_exit(1);
+#endif
 		if (!waitpid(-1, NULL, 0))
 			_exit(1);
+#ifndef __DragonFly__
 		ptrace(PTRACE_CONT, NULL, NULL);
 		ptrace(PTRACE_DETACH, ppid, NULL, NULL);
+#endif
 		_exit(0);
 	} else {
 		close(pipefd[0]);
 
 		/* Enable child to ptrace the parent process */
+#ifndef __DragonFly__
 		rc = prctl(PR_SET_PTRACER, pid);
 		if (rc != 0 && errno != EINVAL) {
 			/* An error prevents us from telling if a debugger is attached.
@@ -332,6 +339,7 @@ is_debugger_attached(void)
 			/* Signal to client that parent is ready by passing '+' */
 			write(pipefd[1], "+", 1);
 		}
+#endif
 		close(pipefd[1]);
 
 		waitpid(pid, &status, 0);
