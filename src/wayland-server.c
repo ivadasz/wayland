@@ -278,7 +278,7 @@ wl_client_connection_data(int fd, uint32_t mask, void *data)
 	if (mask & WL_EVENT_READABLE) {
 //		wl_log("%s: WL_EVENT_READABLE\n", __func__);
 		len = wl_connection_read(connection);
-#if 0
+#if 1
 		if (len == 0 || (len < 0 && errno != EAGAIN)) {
 #else
 		if (len < 0 && errno != EAGAIN) {
@@ -950,7 +950,7 @@ wl_global_create(struct wl_display *display,
 
 	if (interface->version < version) {
 		wl_log("wl_global_create: implemented version higher "
-		       "than interface version%m\n");
+		       "than interface version%s\n", strerror(errno));
 		return NULL;
 	}
 
@@ -1074,7 +1074,7 @@ socket_data(int fd, uint32_t mask, void *data)
 	client_fd = wl_os_accept_cloexec(fd, (struct sockaddr *) &name,
 					 &length);
 	if (client_fd < 0)
-		wl_log("failed to accept: %m\n");
+		wl_log("failed to accept: %s\n", strerror(errno));
 	else
 		if (!wl_client_create(display, client_fd))
 			close(client_fd);
@@ -1181,12 +1181,12 @@ _wl_display_add_socket(struct wl_display *display, struct wl_socket *s)
 
 	size = offsetof (struct sockaddr_un, sun_path) + strlen(s->addr.sun_path);
 	if (bind(s->fd, (struct sockaddr *) &s->addr, size) < 0) {
-		wl_log("bind() failed with error: %m\n");
+		wl_log("bind() failed with error: %s\n", strerror(errno));
 		return -1;
 	}
 
 	if (listen(s->fd, 128) < 0) {
-		wl_log("listen() failed with error: %m\n");
+		wl_log("listen() failed with error: %s\n", strerror(errno));
 		return -1;
 	}
 

@@ -370,8 +370,23 @@ wl_connection_write(struct wl_connection *connection,
 	if (connection->out.head - connection->out.tail +
 	    count > ARRAY_LENGTH(connection->out.data)) {
 		connection->want_flush = 1;
-		if (wl_connection_flush(connection) < 0)
+		int count = 0;
+retry:
+		if (wl_connection_flush(connection) < 0) {
+			if (errno == EAGAIN) {
+				wl_log("%s: wl_connection_flush failed, "
+				    "retrying: %s\n", __func__,
+				    strerror(errno));
+				count++;
+				if (count > 10)
+					usleep(1);
+				goto retry;
+			} else {
+				wl_log("%s: wl_connection_flush failed: %s\n",
+				    __func__, strerror(errno));
+			}
 			return -1;
+		}
 	}
 
 	if (wl_buffer_put(&connection->out, data, count) < 0)
@@ -579,7 +594,7 @@ wl_closure_marshal(struct wl_object *sender, uint32_t opcode,
 			fd = args[i].h;
 			dup_fd = wl_os_dupfd_cloexec(fd, 0);
 			if (dup_fd < 0) {
-				wl_log("dup failed: %m\n");
+				wl_log("dup failed: %s\n", strerror(errno));
 				abort();
 			}
 			closure->args[i].h = dup_fd;

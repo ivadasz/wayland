@@ -1,0 +1,2 @@
+#./autogen.sh --prefix=/home/vadaszi/build/local --with-expat=/usr/local --disable-documentation --with-libevent=/usr/local
+./autogen.sh --prefix=/home/vadaszi/build/local --disable-documentation --with-libevent=/usr/local
